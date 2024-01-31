@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { WebServer } from "./server";
+import { delay } from "./utils";
 
 async function main() {
   const encryption_sk: string = process.env["encryption_sk"] || "";
@@ -31,9 +32,9 @@ async function main() {
   let answer = await shinkaiManager.sendMessage("What are you?", job_id);
   console.log("### Answer:", answer);
 
-  // let resp = await shinkaiManager.getMessages(
-  //   "jobid_b71e1ea6-7860-4cb5-87f9-d08dac928089"
-  // );
+  await delay(20000);
+  let nodeResponse = await shinkaiManager.getMessages(job_id);
+  console.log(nodeResponse);
 }
 
 main();

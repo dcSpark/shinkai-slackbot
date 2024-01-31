@@ -157,7 +157,23 @@ export class ShinkaiManager {
     const inbox = InboxName.getJobInboxNameFromParams(jobId).value;
     const message = await this.buildGetMessagesForInbox(inbox);
     let resp = await postData(message, "/v1/last_messages_from_inbox");
-    console.log(JSON.stringify(resp, null, 2));
+    // console.log(JSON.stringify(resp, null, 2));
+    // console.log(
+    //   resp.data[1].body.unencrypted.message_data.unencrypted.message_raw_content
+    // );
+
+    const isJobMessage =
+      resp.data[1].body.unencrypted.message_data.unencrypted
+        .message_content_schema === MessageSchemaType.JobMessageSchema;
+
+    if (isJobMessage) {
+      const parsedMessage = JSON.parse(
+        resp.data[1].body.unencrypted.message_data.unencrypted
+          .message_raw_content
+      );
+      return parsedMessage?.content ?? "";
+    }
+    return "";
   }
 
   public async createJob(agent: string) {

@@ -3,9 +3,19 @@ import cors from "cors";
 import { SlackMessageResponse, SlackRequest, slackBot } from "./slack";
 import { ShinkaiManager } from "./shinkai_manager";
 
+interface SlackJobAssigned {
+  message: string;
+  parentThreadId: string;
+  jobId: string;
+}
 export class WebServer {
   private app: express.Application;
   private shinkaiManager: ShinkaiManager;
+
+  // the purpose of this is to allow parallelisation, so end user can perform multiple jobs (for example ask questions)
+  // and the node will reply to all of those in parallel manner - hence we need to store the ones we didn't get answers to
+  // Once we get answer/response from the node in the inbox to specific job, we know to which thread we should post it and then we remove this job from the array
+  private activeJobs: SlackJobAssigned[] = [];
 
   constructor(shinkaiManager: ShinkaiManager) {
     this.app = express();
@@ -18,8 +28,6 @@ export class WebServer {
       try {
         const requestBody = req.body as SlackRequest;
         const message = requestBody.text;
-
-        console.log(requestBody);
 
         let threadId = "";
         if (message) {
@@ -41,14 +49,28 @@ export class WebServer {
           threadId = initialMessage.ts;
 
           // create shinkai job
-          let job_id = await shinkaiManager.createJob("main/agent/my_gpt");
-          console.log("### Job ID:", job_id);
+          // TODO: make name of the agent configurable (it should be `main/agent/{name_of_the_agent}`)
+          let jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+          console.log("### Job ID:", jobId);
+
+          this.activeJobs.push({
+            message: message,
+            parentThreadId: threadId,
+            jobId: jobId,
+          });
 
           // send job message to the node
-          let answer = await shinkaiManager.sendMessage(message, job_id);
+          let answer = await shinkaiManager.sendMessage(message, jobId);
           console.log("### Answer:", answer);
 
           // TODO: get last_messages_from_inbox for specific job_id, to show the answer from the node in Slack thread
+          let resp = await shinkaiManager.getMessages(
+            "jobid_b71e1ea6-7860-4cb5-87f9-d08dac928089"
+          );
+
+          // TODO: implement 1&2 once happy path with answers is working
+          // 1. Send message to the node
+          // 2. Implement another function (that doesn't block the endpoint here), that monitors active jobs and sends responses to Slack App once node answers
 
           // reply to question to specific thread where the first job was made
           let jobResponse = `Reply from the node: ${answer}`;
@@ -62,7 +84,7 @@ export class WebServer {
 
           return res.status(200).send({
             status: "success",
-            message: `Job ${job_id} executed successfully`,
+            message: `Job ${jobId} executed successfully`,
           });
         } else {
           throw new Error(

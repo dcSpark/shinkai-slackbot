@@ -3,11 +3,6 @@ import cors from "cors";
 import { SlackMessageResponse, SlackRequest, slackBot } from "./slack";
 import { ShinkaiManager } from "./shinkai_manager";
 
-interface SlackJobAssigned {
-  message: string;
-  parentThreadId: string;
-  jobId: string;
-}
 export class WebServer {
   private app: express.Application;
   private shinkaiManager: ShinkaiManager;
@@ -15,7 +10,6 @@ export class WebServer {
   // the purpose of this is to allow parallelisation, so end user can perform multiple jobs (for example ask questions)
   // and the node will reply to all of those in parallel manner - hence we need to store the ones we didn't get answers to
   // Once we get answer/response from the node in the inbox to specific job, we know to which thread we should post it and then we remove this job from the array
-  private activeJobs: SlackJobAssigned[] = [];
 
   constructor(shinkaiManager: ShinkaiManager) {
     this.app = express();
@@ -53,38 +47,30 @@ export class WebServer {
           let jobId = await shinkaiManager.createJob("main/agent/my_gpt");
           console.log("### Job ID:", jobId);
 
-          this.activeJobs.push({
+          shinkaiManager.activeJobs.push({
             message: message,
             parentThreadId: threadId,
             jobId: jobId,
           });
 
+          console.log(shinkaiManager.activeJobs.length);
+          console.log(shinkaiManager.activeJobs);
+
           // send job message to the node
           let answer = await shinkaiManager.sendMessage(message, jobId);
           console.log("### Answer:", answer);
 
-          // TODO: get last_messages_from_inbox for specific job_id, to show the answer from the node in Slack thread
-          let resp = await shinkaiManager.getMessages(
-            "jobid_b71e1ea6-7860-4cb5-87f9-d08dac928089"
-          );
-
-          // TODO: implement 1&2 once happy path with answers is working
-          // 1. Send message to the node
-          // 2. Implement another function (that doesn't block the endpoint here), that monitors active jobs and sends responses to Slack App once node answers
-
-          // reply to question to specific thread where the first job was made
-          let jobResponse = `Reply from the node: ${answer}`;
-          const slackBotResponse = await slackBot.postMessageToThread(
-            requestBody.channel_id,
-            initialMessage.ts,
-            jobResponse
-          );
-
-          if (slackBotResponse instanceof Error) throw slackBotResponse;
+          const initialSlackMessage = `Job sent to the node jobId: ${jobId}. Response will be posted once node resolves it shortly.`;
+          // we need to inform slack about successfull action immediately otherwise we run into timeout
+          // const slackBotResponse0 = await slackBot.postMessageToThread(
+          //   requestBody.channel_id,
+          //   initialMessage.ts,
+          //   initialSlackMessage
+          // );
 
           return res.status(200).send({
             status: "success",
-            message: `Job ${jobId} executed successfully`,
+            message: initialSlackMessage,
           });
         } else {
           throw new Error(

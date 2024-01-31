@@ -6,7 +6,15 @@ import {
   ShinkaiMessageBuilder,
   TSEncryptionMethod,
 } from "@shinkai_protocol/shinkai-typescript-lib";
-import { postData } from "./utils";
+import { delay, postData } from "./utils";
+import { slackBot } from "./slack";
+import { WebAPICallResult } from "@slack/web-api";
+
+interface SlackJobAssigned {
+  message: string;
+  parentThreadId: string;
+  jobId: string;
+}
 
 export class ShinkaiManager {
   private encryptionSecretKey: Uint8Array;
@@ -15,6 +23,8 @@ export class ShinkaiManager {
   private shinkaiName: string;
   private profileName: string;
   private deviceName: string;
+
+  public activeJobs: SlackJobAssigned[] = [];
 
   constructor(
     encryptionSK: string,
@@ -195,4 +205,44 @@ export class ShinkaiManager {
     let resp = await postData(message, "/v1/get_all_smart_inboxes_for_profile");
     console.log(resp);
   }
+
+  public getNodeResponses = async (): Promise<string | undefined> => {
+    // once request about the job is saved in activeJobs, we want to monitor status of this and clear activeJobs position once job is resolved
+    // also if the job is resolved thanks to activeJobs, we can post answer on Slack to specific threads
+    while (true) {
+      if (this.activeJobs.length === 0) {
+        await delay(10_000);
+        continue;
+      }
+      console.log(
+        `Number of active jobs awaiting for response: ${this.activeJobs.length}`
+      );
+      for (const job of this.activeJobs) {
+        try {
+          let nodeResponse = await this.getMessages(job.jobId);
+          if (nodeResponse) {
+            const slackMessageResponse = (await slackBot.postMessageToThread(
+              // TODO: this needs to be configurable
+              "project",
+              job.parentThreadId,
+              nodeResponse
+            )) as WebAPICallResult;
+
+            if (slackMessageResponse.ok) {
+              // Remove job from activeJobs once processed
+              this.activeJobs = this.activeJobs.filter(
+                (j) => j.jobId !== job.jobId
+              );
+            }
+          }
+        } catch (error) {
+          // console.error(error);
+          console.log(`Response for jobId: ${job.jobId} not available`);
+        }
+      }
+
+      // TODO: make it configurable
+      await delay(1000);
+    }
+  };
 }

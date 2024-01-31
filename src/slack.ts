@@ -5,6 +5,9 @@ import {
   LogLevel,
 } from "@slack/web-api";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 export interface SlackRequest {
   token: string;
   team_id: string;

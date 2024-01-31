@@ -26,15 +26,20 @@ async function main() {
   const server = new WebServer(shinkaiManager);
   server.start(Number(process.env.PORT) ?? 3001);
 
-  let job_id = await shinkaiManager.createJob("main/agent/my_gpt");
-  console.log("### Job ID:", job_id);
+  shinkaiManager
+    .getNodeResponses()
+    .then((response) => console.log("Message response fetcher was started."))
+    .catch((err) => console.error("Node response fetcher was stopped."));
 
-  let answer = await shinkaiManager.sendMessage("What are you?", job_id);
-  console.log("### Answer:", answer);
+  // let job_id = await shinkaiManager.createJob("main/agent/my_gpt");
+  // console.log("### Job ID:", job_id);
 
-  await delay(20000);
-  let nodeResponse = await shinkaiManager.getMessages(job_id);
-  console.log(nodeResponse);
+  // let answer = await shinkaiManager.sendMessage("What are you?", job_id);
+  // console.log("### Answer:", answer);
+
+  // await delay(20000);
+  // let nodeResponse = await shinkaiManager.getMessages(job_id);
+  // console.log(nodeResponse);
 }
 
 main();

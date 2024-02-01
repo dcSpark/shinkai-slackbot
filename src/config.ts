@@ -12,11 +12,12 @@ export type Configuration = {
 };
 
 export const config: Configuration = {
-  encryptionSk: process.env["encryption_sk"] || "",
-  signatureSk: process.env["signature_sk"] || "",
-  receiverPk: process.env["receiver_pk"] || "",
+  encryptionSk: process.env["ENCRYPTION_SK"] || "",
+  signatureSk: process.env["SIGNATURE_SK"] || "",
+  receiverPk: process.env["RECEIVER_PK"] || "",
+
   slackAppToken: process.env["SLACK_BOT_TOKEN"],
-  profileName: "main",
-  deviceName: "main_device",
-  nodeName: "@@localhost.shinkai",
+  profileName: process.env["PROFILE_NAME"] || "main",
+  deviceName: process.env["DEVICE_NAME"] || "main_device",
+  nodeName: process.env["NODE_NAME"] || "@@localhost.shinkai",
 };

@@ -44,6 +44,7 @@ export class ShinkaiManager {
     this.encryptionSecretKey = new Uint8Array(Buffer.from(encryptionSK, "hex"));
     this.signatureSecretKey = new Uint8Array(Buffer.from(signatureSK, "hex"));
     this.receiverPublicKey = new Uint8Array(Buffer.from(receiverPK, "hex"));
+
     this.shinkaiName = shinkaiName;
     this.profileName = profileName;
     this.deviceName = deviceName;
@@ -80,46 +81,6 @@ export class ShinkaiManager {
       this.profileName,
       this.shinkaiName,
       agent
-    );
-  }
-
-  async buildGetInboxes(): Promise<any> {
-    // Option A
-    // const messageBuilder = new ShinkaiMessageBuilder(
-    //   this.encryptionSecretKey,
-    //   this.signatureSecretKey,
-    //   this.receiverPublicKey
-    // );
-
-    // await messageBuilder.init();
-
-    // const message = await messageBuilder
-    //   .set_message_raw_content(this.shinkaiName + "/" + this.profileName)
-    //   .set_body_encryption(TSEncryptionMethod.DiffieHellmanChaChaPoly1305)
-    //   .set_message_schema_type(MessageSchemaType.TextContent)
-    //   .set_internal_metadata_with_inbox(
-    //     this.profileName,
-    //     "",
-    //     "",
-    //     TSEncryptionMethod.None
-    //   )
-    //   .set_external_metadata_with_intra_sender(
-    //     this.shinkaiName,
-    //     this.shinkaiName,
-    //     this.profileName
-    //   )
-    //   .build();
-
-    // return message;
-    // Option B
-    return await ShinkaiMessageBuilder.getAllInboxesForProfile(
-      this.encryptionSecretKey,
-      this.signatureSecretKey,
-      this.receiverPublicKey,
-      this.shinkaiName + "/" + this.profileName,
-      this.shinkaiName,
-      this.profileName,
-      this.shinkaiName
     );
   }
 
@@ -207,11 +168,6 @@ export class ShinkaiManager {
     } else {
       throw new Error(`Job creation failed: ${resp}`);
     }
-  }
-
-  public async getInboxes() {
-    const message = await this.buildGetInboxes();
-    let resp = await postData(message, "/v1/get_all_smart_inboxes_for_profile");
   }
 
   public getNodeResponses = async (): Promise<string | undefined> => {

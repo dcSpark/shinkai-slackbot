@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { SlackMessageResponse, SlackRequest, slackBot } from "./slack";
 import { ShinkaiManager } from "./shinkai_manager";
+import axios from "axios";
 
 export class WebServer {
   public app: express.Application;
@@ -82,7 +83,18 @@ export class WebServer {
 
     this.app.get("/health", async (req: any, res: any) => {
       try {
-        // TODO: add necessary health checks (if service has access to the node & slack setup)
+        const shinkaiHealthUrl = `${process.env.SHINKAI_NODE_URL}/v1/shinkai_health`;
+
+        const healthResponse = await axios.get(shinkaiHealthUrl);
+        if (
+          healthResponse.status === 200 &&
+          healthResponse.data.status === "ok"
+        ) {
+          console.log("Shinkai node is healthy.");
+        } else {
+          throw new Error("Shinkai node health check failed.");
+        }
+
         return res.status(200).send({
           status: "success",
           message: `Shinkai Slack backend is up and running.`,
@@ -92,7 +104,7 @@ export class WebServer {
         console.error(error.message);
         return res.status(400).send({
           status: "error",
-          message: error.message,
+          message: `Error for: ${error.message}`,
         });
       }
     });

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "node build/src/index.js",
     "build": "tsc --outDir build",
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "test": "jest test/integration.test.ts --runInBand --forceExit"

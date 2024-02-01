@@ -163,33 +163,42 @@ export class ShinkaiManager {
     }
   }
 
+  // right now we just support question -> answer/response
+  // in multiple requests per job, we need to always find the last message in the array
   public async getMessages(jobId: string) {
-    const inbox = InboxName.getJobInboxNameFromParams(jobId).value;
-    const message = await this.buildGetMessagesForInbox(inbox);
-    let resp = await postData(message, "/v1/last_messages_from_inbox");
-    // console.log(JSON.stringify(resp, null, 2));
-    // console.log(
-    //   resp.data[1].body.unencrypted.message_data.unencrypted.message_raw_content
-    // );
+    try {
+      const inbox = InboxName.getJobInboxNameFromParams(jobId).value;
+      const message = await this.buildGetMessagesForInbox(inbox);
+      let resp = await postData(message, "/v1/last_messages_from_inbox");
 
-    const isJobMessage =
-      resp.data[1].body.unencrypted.message_data.unencrypted
-        .message_content_schema === MessageSchemaType.JobMessageSchema;
+      if (resp.data.length === 1) {
+        console.log("There's no answer available yet.");
+        return "";
+      }
 
-    if (isJobMessage) {
-      const parsedMessage = JSON.parse(
+      const isJobMessage =
         resp.data[1].body.unencrypted.message_data.unencrypted
-          .message_raw_content
-      );
-      return parsedMessage?.content ?? "";
+          .message_content_schema === MessageSchemaType.JobMessageSchema;
+
+      if (isJobMessage) {
+        const parsedMessage = JSON.parse(
+          resp.data[1].body.unencrypted.message_data.unencrypted
+            .message_raw_content
+        );
+        return parsedMessage?.content ?? "";
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error(error.message);
     }
+
     return "";
   }
 
   public async createJob(agent: string) {
     const jobMessage = await this.buildCreateJob(agent);
-    console.log("### Message:");
-    console.log(jobMessage);
+    // console.log("### Message:");
+    // console.log(jobMessage);
 
     let resp = await postData(JSON.stringify(jobMessage), "/v1/create_job");
 
@@ -203,7 +212,6 @@ export class ShinkaiManager {
   public async getInboxes() {
     const message = await this.buildGetInboxes();
     let resp = await postData(message, "/v1/get_all_smart_inboxes_for_profile");
-    console.log(resp);
   }
 
   public getNodeResponses = async (): Promise<string | undefined> => {

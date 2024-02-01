@@ -76,7 +76,6 @@ export class SlackBot {
       types: "public_channel",
     });
 
-    console.log(result);
     return;
   }
 

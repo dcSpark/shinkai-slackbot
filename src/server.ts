@@ -63,6 +63,7 @@ export class WebServer {
           return res.status(200).send({
             status: "success",
             message: initialSlackMessage,
+            // response_type: "in_channel",
           });
         } else {
           throw new Error(

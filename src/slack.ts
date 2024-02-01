@@ -5,8 +5,7 @@ import {
   LogLevel,
 } from "@slack/web-api";
 
-import dotenv from "dotenv";
-dotenv.config();
+import { config } from "./config";
 
 export interface SlackRequest {
   token: string;
@@ -58,8 +57,7 @@ export class SlackBot {
   private client!: WebClient;
 
   constructor() {
-    const token = process.env.SLACK_BOT_TOKEN;
-
+    const token = config.slackAppToken;
     if (token === undefined || token === "")
       throw new Error(
         `SLACK_BOT_TOKEN env not defined. SLACK_BOT_TOKEN: ${token}`

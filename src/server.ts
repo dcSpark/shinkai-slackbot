@@ -4,13 +4,12 @@ import { SlackMessageResponse, SlackRequest, slackBot } from "./slack";
 import { ShinkaiManager } from "./shinkai_manager";
 
 export class WebServer {
-  private app: express.Application;
+  public app: express.Application;
   private shinkaiManager: ShinkaiManager;
 
   // the purpose of this is to allow parallelisation, so end user can perform multiple jobs (for example ask questions)
   // and the node will reply to all of those in parallel manner - hence we need to store the ones we didn't get answers to
   // Once we get answer/response from the node in the inbox to specific job, we know to which thread we should post it and then we remove this job from the array
-
   constructor(shinkaiManager: ShinkaiManager) {
     this.app = express();
     this.app.use(cors());
@@ -24,6 +23,7 @@ export class WebServer {
         const message = requestBody.text;
 
         let threadId = "";
+
         if (message) {
           // Post the message to the thread (initializing thread, so we know where to push the response of the job)
           // Otherwise app has no idea what is the thread to which the reply should be posted later
@@ -53,21 +53,13 @@ export class WebServer {
             jobId: jobId,
           });
 
-          console.log(shinkaiManager.activeJobs.length);
-          console.log(shinkaiManager.activeJobs);
-
           // send job message to the node
           let answer = await shinkaiManager.sendMessage(message, jobId);
           console.log("### Answer:", answer);
 
           const initialSlackMessage = `Job sent to the node jobId: ${jobId}. Response will be posted once node resolves it shortly.`;
-          // we need to inform slack about successfull action immediately otherwise we run into timeout
-          // const slackBotResponse0 = await slackBot.postMessageToThread(
-          //   requestBody.channel_id,
-          //   initialMessage.ts,
-          //   initialSlackMessage
-          // );
 
+          // we need to inform slack about successfull action immediately otherwise we run into timeout (sending 200 is enough)
           return res.status(200).send({
             status: "success",
             message: initialSlackMessage,

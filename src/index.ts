@@ -1,26 +1,18 @@
 import { ShinkaiManager } from "./shinkai_manager";
 
-import dotenv from "dotenv";
-dotenv.config();
-
 import { WebServer } from "./server";
 import { delay } from "./utils";
 
-async function main() {
-  const encryption_sk: string = process.env["encryption_sk"] || "";
-  const signature_sk: string = process.env["signature_sk"] || "";
-  const receiver_pk = process.env["receiver_pk"] || "";
-  const profile_name = "main";
-  const device_name = "main_device";
-  const node_name = "@@localhost.shinkai";
+import { config } from "./config";
 
+async function main() {
   const shinkaiManager: ShinkaiManager = new ShinkaiManager(
-    encryption_sk,
-    signature_sk,
-    receiver_pk,
-    node_name,
-    profile_name,
-    device_name
+    config.encryptionSk,
+    config.signatureSk,
+    config.receiverPk,
+    config.nodeName,
+    config.profileName,
+    config.deviceName
   );
 
   const server = new WebServer(shinkaiManager);

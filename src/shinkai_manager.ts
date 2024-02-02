@@ -12,8 +12,9 @@ import { WebAPICallResult } from "@slack/web-api";
 
 interface SlackJobAssigned {
   message: string;
-  parentThreadId: string;
-  jobId: string;
+  shinkaiJobId: string;
+  slackChannelId: string;
+  slackThreadId: string;
 }
 
 export class ShinkaiManager {
@@ -183,25 +184,24 @@ export class ShinkaiManager {
       );
       for (const job of this.activeJobs) {
         try {
-          let nodeResponse = await this.getMessages(job.jobId);
+          let nodeResponse = await this.getMessages(job.shinkaiJobId);
           if (nodeResponse) {
             const slackMessageResponse = (await slackBot.postMessageToThread(
-              // TODO: this needs to be configurable
-              "project",
-              job.parentThreadId,
+              job.slackChannelId,
+              job.slackThreadId,
               nodeResponse
             )) as WebAPICallResult;
 
             if (slackMessageResponse.ok) {
               // Remove job from activeJobs once processed
               this.activeJobs = this.activeJobs.filter(
-                (j) => j.jobId !== job.jobId
+                (j) => j.shinkaiJobId !== job.shinkaiJobId
               );
             }
           }
         } catch (error) {
           // console.error(error);
-          console.log(`Response for jobId: ${job.jobId} not available`);
+          console.log(`Response for jobId: ${job.shinkaiJobId} not available`);
         }
       }
 

@@ -4,6 +4,11 @@ import { SlackMessageResponse, SlackRequest, slackBot } from "./slack";
 import { ShinkaiManager } from "./shinkai_manager";
 import axios from "axios";
 
+interface SlackEventApiRequestBody {
+  token: string;
+  challenge: string;
+  type: string;
+}
 export class WebServer {
   public app: express.Application;
   private shinkaiManager: ShinkaiManager;
@@ -19,6 +24,7 @@ export class WebServer {
     this.shinkaiManager = shinkaiManager;
 
     this.app.post("/slack", async (req: any, res: any) => {
+      console.log(req);
       try {
         const requestBody = req.body as SlackRequest;
         const message = requestBody.text;
@@ -50,8 +56,9 @@ export class WebServer {
 
           shinkaiManager.activeJobs.push({
             message: message,
-            parentThreadId: threadId,
-            jobId: jobId,
+            slackThreadId: threadId,
+            slackChannelId: requestBody.channel_id,
+            shinkaiJobId: jobId,
           });
 
           // send job message to the node
@@ -71,6 +78,30 @@ export class WebServer {
             `${message} was not provided. Nothing to pass to the node.`
           );
         }
+      } catch (err) {
+        console.error(err);
+
+        const error = err as Error;
+        return res
+          .status(400)
+          .send({ status: "error", message: error.message });
+      }
+    });
+
+    // Endpoint for handling Event API (so we can use mentions)
+    this.app.post("/slack/events", async (req: any, res: any) => {
+      try {
+        // console.log(req);
+        console.log(req.body);
+        const requestBody = req.body as SlackEventApiRequestBody;
+
+        // we need to inform slack about successfull action immediately otherwise we run into timeout (sending 200 is enough)
+        return res.status(200).send({
+          token: requestBody.token,
+          challenge: requestBody.challenge,
+          type: requestBody.type,
+          // response_type: "in_channel",
+        });
       } catch (err) {
         console.error(err);
 

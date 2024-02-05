@@ -81,7 +81,6 @@ export class WebServer {
         let threadId = "";
 
         if (message) {
-          console.log(message);
           // Post the message to the thread (initializing thread, so we know where to push the response of the job)
           // Otherwise app has no idea what is the thread to which the reply should be posted later
           const statusInfoMessage = `Shinkai job created based on "${message}. Reply from the node will appear in the thread."`;

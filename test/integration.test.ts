@@ -5,6 +5,7 @@ import { ShinkaiManager } from "../src/shinkai_manager";
 
 import { config } from "../src/config";
 import { SlackBot } from "../src/slack";
+import { delay } from "../src/utils";
 
 // `Slack` trigger is to call `/slack` endpoint
 describe("Integration Tests for WebServer Endpoints", () => {
@@ -24,13 +25,13 @@ describe("Integration Tests for WebServer Endpoints", () => {
       config.deviceName
     );
     webServer = new WebServer(shinkaiManager, slackBot);
-    webServer.start(3001);
+    webServer.start(3002);
   });
 
   describe("/slack endpoint", () => {
     it("should successfully post a message to slack and create a job", async () => {
       const response = await request(webServer.app).post("/slack").send({
-        text: "[INTEGRATION TEST RUNNING 2342134532]. What is integration testss?",
+        text: "What is integration test?",
         channel_id: "project",
       });
 
@@ -49,6 +50,42 @@ describe("Integration Tests for WebServer Endpoints", () => {
       expect(response.body.message).toBe(
         "Shinkai Slack backend is up and running."
       );
+    });
+  });
+
+  describe("Trigger Slack endpoint with AI prompts", () => {
+    it("should trigger slack endpoint with AI prompt questions and verify pending messages", async () => {
+      const prompts = [
+        "What is the meaning of life?",
+        "Explain the theory of relativity",
+      ];
+
+      let pendingMessagesAfter = shinkaiManager.activeJobs.length;
+      for (const prompt of prompts) {
+        const pendingMessagesBefore = shinkaiManager.activeJobs.length;
+        // Trigger slack endpoint with the prompt
+        await request(webServer.app).post("/slack").send({
+          text: prompt,
+          channel_id: "questions",
+        });
+
+        // Verify if message was added
+        pendingMessagesAfter = shinkaiManager.activeJobs.length;
+
+        // Ensure that the number of pending messages is not increasing unexpectedly
+        expect(pendingMessagesBefore).toBeLessThanOrEqual(pendingMessagesAfter);
+      }
+
+      shinkaiManager.getNodeResponses(slackBot);
+
+      await delay(25_000);
+
+      const stillPendingMessages = shinkaiManager.activeJobs.length;
+      expect(stillPendingMessages).toBeLessThan(pendingMessagesAfter);
+    }, 40_000);
+
+    afterAll(async () => {
+      // Additional cleanup if necessary
     });
   });
 

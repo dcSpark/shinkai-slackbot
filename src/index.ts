@@ -2,6 +2,7 @@ import { ShinkaiManager } from "./shinkai_manager";
 import { WebServer } from "./server";
 import { config } from "./config";
 import { delay } from "./utils";
+import { SlackBot } from "./slack";
 
 async function main() {
   const shinkaiManager: ShinkaiManager = new ShinkaiManager(
@@ -13,11 +14,12 @@ async function main() {
     config.deviceName
   );
 
-  const server = new WebServer(shinkaiManager);
+  const slackBot = new SlackBot(false);
+  const server = new WebServer(shinkaiManager, slackBot);
   server.start(Number(process.env.PORT) ?? 3001);
 
   shinkaiManager
-    .getNodeResponses()
+    .getNodeResponses(slackBot)
     .then((response) => console.log("Message response fetcher was started."))
     .catch((err) => console.error("Node response fetcher was stopped."));
 

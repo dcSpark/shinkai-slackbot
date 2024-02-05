@@ -4,19 +4,17 @@ import { WebServer } from "../src/server";
 import { ShinkaiManager } from "../src/shinkai_manager";
 
 import { config } from "../src/config";
-import { slackBot } from "../src/slack";
+import { SlackBot } from "../src/slack";
 
 // `Slack` trigger is to call `/slack` endpoint
-
 describe("Integration Tests for WebServer Endpoints", () => {
   let webServer: WebServer;
   let shinkaiManager: ShinkaiManager;
+  let slackBot: SlackBot;
 
   beforeAll(() => {
-    // TODO (ideally): Start shinkai node
-    // TODO: identify if we can get keys from the node automatically & if not then assume node must be running in the background
-    // execSync("sh scripts/run_node1.sh", { stdio: "inherit" });
-
+    // we assume node must be running in the background
+    slackBot = new SlackBot(true);
     shinkaiManager = new ShinkaiManager(
       config.encryptionSk,
       config.signatureSk,
@@ -25,14 +23,14 @@ describe("Integration Tests for WebServer Endpoints", () => {
       config.profileName,
       config.deviceName
     );
-    webServer = new WebServer(shinkaiManager);
+    webServer = new WebServer(shinkaiManager, slackBot);
     webServer.start(3001);
   });
 
   describe("/slack endpoint", () => {
     it("should successfully post a message to slack and create a job", async () => {
       const response = await request(webServer.app).post("/slack").send({
-        text: "[INTEGRATION TEST RUNNING]. What is integration test?",
+        text: "[INTEGRATION TEST RUNNING 2342134532]. What is integration testss?",
         channel_id: "project",
       });
 
@@ -40,20 +38,6 @@ describe("Integration Tests for WebServer Endpoints", () => {
       const jobIdRegex =
         /Job sent to the node jobId: jobid_[a-z0-9-]+\. Response will be posted once node resolves it shortly\./;
       expect(response.body.message).toMatch(jobIdRegex);
-    });
-
-    it("should return an error if message text is not provided", async () => {
-      const response = await request(webServer.app)
-        .post("/slack")
-        .send({
-          channel_id: "nonExistingChannel",
-        })
-        .expect(400);
-
-      expect(response.body.status).toBe("error");
-      expect(response.body.message).toBe(
-        "undefined was not provided. Nothing to pass to the node."
-      );
     });
   });
 

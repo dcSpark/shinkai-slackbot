@@ -9,6 +9,7 @@ export type Configuration = {
   deviceName: string;
   nodeName: string;
   slackAppToken: string;
+  slackSigningKey: string;
 };
 
 export const config: Configuration = {
@@ -17,6 +18,8 @@ export const config: Configuration = {
   receiverPk: process.env["RECEIVER_PK"] || "",
 
   slackAppToken: process.env["SLACK_BOT_TOKEN"],
+  slackSigningKey: process.env["SLACK_SIGNING_SECRET"],
+
   profileName: process.env["PROFILE_NAME"] || "main",
   deviceName: process.env["DEVICE_NAME"] || "main_device",
   nodeName: process.env["NODE_NAME"] || "@@localhost.shinkai",

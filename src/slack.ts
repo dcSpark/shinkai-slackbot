@@ -55,13 +55,17 @@ export interface SlackMessageResponse {
 export class SlackBot {
   private token!: string;
   private client!: WebClient;
+  private isTesting!: boolean;
 
-  constructor() {
-    const token = config.slackAppToken;
-    if (token === undefined || token === "")
+  constructor(isTesting: boolean = false) {
+    this.isTesting = process.env.NODE_ENV as unknown as boolean;
+    console.log(this.isTesting);
+    const token = config.slackAppToken ?? "";
+    if (!isTesting && (token === undefined || token === "")) {
       throw new Error(
         `SLACK_BOT_TOKEN env not defined. SLACK_BOT_TOKEN: ${token}`
       );
+    }
 
     this.client = new WebClient(token, {
       logLevel: LogLevel.DEBUG,
@@ -71,19 +75,24 @@ export class SlackBot {
     });
   }
 
-  public async listConversations(): Promise<string[] | undefined> {
-    const result = await this.client.conversations.list({
-      types: "public_channel",
-    });
-
-    return;
-  }
-
   // Function to post a message to a specific channel
   public async postMessageToChannel(
     channelId: string,
     text: string
   ): Promise<WebAPICallResult | undefined> {
+    console.log("this.isTesting");
+    console.log(this.isTesting);
+    if (this.isTesting) {
+      return Promise.resolve({
+        ok: true,
+        channel: channelId,
+        ts: 1234,
+        message: {
+          text: text,
+        },
+      });
+    }
+
     try {
       const result = await this.client.chat.postMessage({
         channel: channelId,
@@ -105,17 +114,27 @@ export class SlackBot {
     threadTs: string,
     text: string
   ): Promise<WebAPICallResult | Error> {
+    if (this.isTesting) {
+      return Promise.resolve({
+        ok: true,
+        channel: channelId,
+        ts: "mock_thread",
+        message: {
+          text: text,
+        },
+      });
+    }
+
     try {
       const result = await this.client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
         text: text,
       });
-      // console.log(result);
 
       if (result.ok) {
         console.log(
-          `Response from the node: ${text} posted to channelId: ${channelId} successfuly.`
+          `Response from the node: ${text} posted to channelId: ${channelId} successfully.`
         );
       }
       return result;
@@ -126,6 +145,3 @@ export class SlackBot {
     }
   }
 }
-
-// SlackBot can be initialized globally
-export const slackBot = new SlackBot();

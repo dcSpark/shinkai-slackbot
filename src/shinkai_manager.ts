@@ -7,8 +7,8 @@ import {
   TSEncryptionMethod,
 } from "@shinkai_protocol/shinkai-typescript-lib";
 import { delay, postData } from "./utils";
-import { slackBot } from "./slack";
 import { WebAPICallResult } from "@slack/web-api";
+import { SlackBot } from "./slack";
 
 interface SlackJobAssigned {
   message: string;
@@ -171,7 +171,9 @@ export class ShinkaiManager {
     }
   }
 
-  public getNodeResponses = async (): Promise<string | undefined> => {
+  public getNodeResponses = async (
+    slackBot: SlackBot
+  ): Promise<string | undefined> => {
     // once request about the job is saved in activeJobs, we want to monitor status of this and clear activeJobs position once job is resolved
     // also if the job is resolved thanks to activeJobs, we can post answer on Slack to specific threads
     while (true) {

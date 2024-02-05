@@ -58,8 +58,7 @@ export class SlackBot {
   private isTesting!: boolean;
 
   constructor(isTesting: boolean = false) {
-    this.isTesting = process.env.NODE_ENV as unknown as boolean;
-    console.log(this.isTesting);
+    this.isTesting = isTesting || process.env.NODE_ENV === "test";
     const token = config.slackAppToken ?? "";
     if (!isTesting && (token === undefined || token === "")) {
       throw new Error(

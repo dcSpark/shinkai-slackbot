@@ -6,11 +6,24 @@ import axios from "axios";
 import crypto from "crypto";
 import { config } from "./config";
 
-interface SlackEventApiRequestBody {
-  token: string;
-  challenge: string;
-  type: string;
+interface SlackEventApiRequestBodyContent {
+  type: "app_mention" | "message";
+  client_msg_id: string;
+  text: string;
+  user: string;
+  ts: string;
+  blocks: Array<{
+    type: string;
+    block_id: string;
+    elements: Array<any>;
+  }>;
+  team: string;
+  channel: string;
+  event_ts: string;
+  channel_type: string;
 }
+
+const jobThreadMapping: { [jobId: string]: string } = {};
 
 // middleware for verifying slack incoming messages
 const verifySlackRequest = (req, res, next) => {
@@ -138,17 +151,61 @@ export class WebServer {
     // Endpoint for handling Event API (so we can use mentions)
     this.app.post("/slack/events", async (req: any, res: any) => {
       try {
-        // console.log(req);
-        console.log(req.body);
-        const requestBody = req.body as SlackEventApiRequestBody;
+        const json_data = req.body as any;
 
-        // we need to inform slack about successfull action immediately otherwise we run into timeout (sending 200 is enough)
-        return res.status(200).send({
-          token: requestBody.token,
-          challenge: requestBody.challenge,
-          type: requestBody.type,
-          // response_type: "in_channel",
-        });
+        // URL Verification (important for slack setup)
+        if ("challenge" in json_data) {
+          return res.json({ challenge: json_data["challenge"] });
+        }
+
+        const event = json_data.event as SlackEventApiRequestBodyContent;
+        if (
+          event.type === "app_mention" &&
+          "text" in event &&
+          json_data.api_app_id === process.env.SLACK_APP_ID
+        ) {
+          const extractedMessage = event.text.match(/“(.+?)”/);
+          const message = extractedMessage ? extractedMessage[1] : "";
+
+          if (message) {
+            console.log(message);
+            let threadId = event.ts;
+
+            if (threadId === undefined || threadId === null) {
+              throw new Error(
+                `Couldn't identify thread for reply. thread_ts: ${threadId}`
+              );
+            }
+
+            // create shinkai job
+            let jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+            console.log("### Job ID:", jobId);
+
+            shinkaiManager.activeJobs.push({
+              message: message,
+              slackThreadId: threadId,
+              slackChannelId: event.channel,
+              shinkaiJobId: jobId,
+            });
+
+            // send job message to the node
+            let answer = await shinkaiManager.sendMessage(message, jobId);
+            console.log("### Answer:", answer);
+
+            slackBot.postMessageToThread(
+              event.channel,
+              threadId,
+              `Job ${jobId} created. Node will soon reply in this thread`
+            );
+
+            // we need to inform slack about successfull action immediately otherwise we run into timeout (sending 200 is enough)
+          } else {
+            throw new Error(
+              `${message} was not provided. Nothing to pass to the node.`
+            );
+          }
+        }
+        return res.status(200).send();
       } catch (err) {
         console.error(err);
 

@@ -14,7 +14,7 @@ async function main() {
     config.deviceName
   );
 
-  const slackBot = new SlackBot(false);
+  const slackBot = new SlackBot();
   const server = new WebServer(shinkaiManager, slackBot);
   server.start(Number(process.env.PORT) ?? 3001);
 

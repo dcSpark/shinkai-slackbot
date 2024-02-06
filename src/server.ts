@@ -84,7 +84,7 @@ export class WebServer {
   constructor(
     shinkaiManager: ShinkaiManager,
     slackBot: SlackBot,
-    threadJobMapping: { [threadId: string]: string }
+    threadJobMapping: { [threadId: string]: string } | undefined
   ) {
     this.app = express();
     this.app.use(cors());

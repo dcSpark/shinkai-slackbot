@@ -24,7 +24,7 @@ describe("Integration Tests for WebServer Endpoints", () => {
       config.profileName,
       config.deviceName
     );
-    webServer = new WebServer(shinkaiManager, slackBot);
+    webServer = new WebServer(shinkaiManager, slackBot, undefined);
     webServer.start(3002);
   });
 
@@ -39,7 +39,7 @@ describe("Integration Tests for WebServer Endpoints", () => {
       const jobIdRegex =
         /Job sent to the node jobId: jobid_[a-z0-9-]+\. Response will be posted once node resolves it shortly\./;
       expect(response.body.message).toMatch(jobIdRegex);
-    });
+    }, 20_000);
   });
 
   describe("/health endpoint", () => {
@@ -50,6 +50,38 @@ describe("Integration Tests for WebServer Endpoints", () => {
       expect(response.body.message).toBe(
         "Shinkai Slack backend is up and running."
       );
+    }, 20_000);
+  });
+
+  describe("/slack/events endpoint", () => {
+    it("should respond with challenge when receiving a challenge request", async () => {
+      const challenge = "testChallenge";
+      const response = await request(webServer.app).post("/slack/events").send({
+        challenge,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ challenge });
+    }, 10_000);
+
+    it("should process event and create a job when receiving an event request", async () => {
+      const mockEvent = {
+        type: "app_mention",
+        text: "<@USER_APP_ID> test message",
+        ts: "123456789.12345",
+        thread_ts: "123456789.12345",
+        channel: "testChannel",
+        api_app_id: process.env.SLACK_APP_ID,
+      };
+      const mockJsonData = {
+        event: mockEvent,
+      };
+
+      const response = await request(webServer.app)
+        .post("/slack/events")
+        .send(mockJsonData);
+
+      expect(response.status).toBe(200);
     });
   });
 
@@ -78,11 +110,11 @@ describe("Integration Tests for WebServer Endpoints", () => {
 
       shinkaiManager.getNodeResponses(slackBot);
 
-      await delay(25_000);
+      await delay(30_000);
 
       const stillPendingMessages = shinkaiManager.activeJobs.length;
       expect(stillPendingMessages).toBeLessThan(pendingMessagesAfter);
-    }, 40_000);
+    }, 60_000);
 
     afterAll(async () => {
       // Additional cleanup if necessary

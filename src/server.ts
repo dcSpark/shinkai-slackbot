@@ -88,6 +88,7 @@ export class WebServer {
     this.shinkaiManager = shinkaiManager;
     this.slackBot = slackBot;
 
+    // handling Slack commands (no threads support, though answer is posted correctly inside thread)
     this.app.post("/slack", verifySlackRequest, async (req: any, res: any) => {
       try {
         const requestBody = req.body as SlackRequest;

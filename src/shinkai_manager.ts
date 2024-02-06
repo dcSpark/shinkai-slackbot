@@ -138,14 +138,20 @@ export class ShinkaiManager {
         return "";
       }
 
+      // we only care about the latest response
+      const latestMessage = resp.data[resp.data.length - 1];
       const isJobMessage =
-        resp.data[1].body.unencrypted.message_data.unencrypted
-          .message_content_schema === MessageSchemaType.JobMessageSchema;
+        // message we're interested in has specific JobMessageSchema
+        latestMessage.body.unencrypted.message_data.unencrypted
+          .message_content_schema === MessageSchemaType.JobMessageSchema &&
+        // sender_subidentity is empty for responses from the node
+        latestMessage.body.unencrypted.internal_metadata.sender_subidentity ===
+          "";
 
       if (isJobMessage) {
         const parsedMessage = JSON.parse(
-          resp.data[1].body.unencrypted.message_data.unencrypted
-            .message_raw_content
+          resp.data[resp.data.length - 1].body.unencrypted.message_data
+            .unencrypted.message_raw_content
         );
         return parsedMessage?.content ?? "";
       }
@@ -159,9 +165,6 @@ export class ShinkaiManager {
 
   public async createJob(agent: string) {
     const jobMessage = await this.buildCreateJob(agent);
-    // console.log("### Message:");
-    // console.log(jobMessage);
-
     let resp = await postData(JSON.stringify(jobMessage), "/v1/create_job");
 
     if (resp.status === "success") {
@@ -187,6 +190,7 @@ export class ShinkaiManager {
       for (const job of this.activeJobs) {
         try {
           let nodeResponse = await this.getMessages(job.shinkaiJobId);
+          console.log(nodeResponse);
           if (nodeResponse) {
             const slackMessageResponse = (await slackBot.postMessageToThread(
               job.slackChannelId,

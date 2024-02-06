@@ -23,7 +23,8 @@ interface SlackEventApiRequestBodyContent {
   channel_type: string;
 }
 
-const jobThreadMapping: { [jobId: string]: string } = {};
+// if specific thread was already seen, reuse it
+const threadJobMapping: { [threadId: string]: string } = {};
 
 // middleware for verifying slack incoming messages
 const verifySlackRequest = (req, res, next) => {
@@ -150,6 +151,8 @@ export class WebServer {
 
     // Endpoint for handling Event API (so we can use mentions)
     this.app.post("/slack/events", async (req: any, res: any) => {
+      // if we don't send 200 immediately, then Slack itself sends duplicated messages (there's no way to configure it on Slack settings)
+      res.status(200).send();
       try {
         const json_data = req.body as any;
 
@@ -164,11 +167,11 @@ export class WebServer {
           "text" in event &&
           json_data.api_app_id === process.env.SLACK_APP_ID
         ) {
-          const extractedMessage = event.text.match(/“(.+?)”/);
-          const message = extractedMessage ? extractedMessage[1] : "";
+          // cleanup the message
+          const message = event.text?.replace(/<@([A-Z0-9]+)>/, "");
+          console.log(`Extracted message: ${message}`);
 
           if (message) {
-            console.log(message);
             let threadId = event.ts;
 
             if (threadId === undefined || threadId === null) {
@@ -177,8 +180,12 @@ export class WebServer {
               );
             }
 
-            // create shinkai job
-            let jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+            let jobId = "";
+            if (threadJobMapping[threadId] !== undefined) {
+              jobId = threadJobMapping[threadId];
+            } else {
+              jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+            }
             console.log("### Job ID:", jobId);
 
             shinkaiManager.activeJobs.push({
@@ -192,13 +199,12 @@ export class WebServer {
             let answer = await shinkaiManager.sendMessage(message, jobId);
             console.log("### Answer:", answer);
 
-            slackBot.postMessageToThread(
-              event.channel,
-              threadId,
-              `Job ${jobId} created. Node will soon reply in this thread`
-            );
-
-            // we need to inform slack about successfull action immediately otherwise we run into timeout (sending 200 is enough)
+            // if things become too spammy, we can remove the next instruction
+            // slackBot.postMessageToThread(
+            //   event.channel,
+            //   threadId,
+            //   `Job ${jobId} created. Node will soon reply in this thread`
+            // );
           } else {
             throw new Error(
               `${message} was not provided. Nothing to pass to the node.`

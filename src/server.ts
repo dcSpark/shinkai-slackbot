@@ -21,6 +21,7 @@ interface SlackEventApiRequestBodyContent {
   channel: string;
   event_ts: string;
   channel_type: string;
+  thread_ts?: string;
 }
 
 // if specific thread was already seen, reuse it
@@ -167,24 +168,44 @@ export class WebServer {
           "text" in event &&
           json_data.api_app_id === process.env.SLACK_APP_ID
         ) {
-          // cleanup the message
+          // cleanup the message (there's <@USER_APP_ID> as a prefix added each time we send something)
           const message = event.text?.replace(/<@([A-Z0-9]+)>/, "");
           console.log(`Extracted message: ${message}`);
 
-          if (message) {
+          if (message !== undefined || message !== "") {
             let threadId = event.ts;
 
+            // if we start conversation from scratch we take `event.ts` value
+            // however if we are inside already started conversation we need to take `event.thread_ts` field value
+            console.log(`thread_ts: ${event.thread_ts}`);
+            console.log(`ts: ${event.ts}`);
+            if (event.thread_ts !== undefined) {
+              threadId = event.thread_ts;
+            } else {
+              threadId = event.ts;
+            }
+
+            // make sure there's always thread defined
             if (threadId === undefined || threadId === null) {
               throw new Error(
                 `Couldn't identify thread for reply. thread_ts: ${threadId}`
               );
             }
 
+            const existingJobId = threadJobMapping[threadId];
             let jobId = "";
-            if (threadJobMapping[threadId] !== undefined) {
-              jobId = threadJobMapping[threadId];
+            if (existingJobId !== undefined) {
+              console.log(
+                `Thread ${threadId} already has existing job id assigned: ${existingJobId}`
+              );
+              jobId = existingJobId;
             } else {
+              // create shinkai job
+              console.log(`Creating job id`);
               jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+
+              // assign job id for the fuut
+              threadJobMapping[threadId] = jobId;
             }
             console.log("### Job ID:", jobId);
 

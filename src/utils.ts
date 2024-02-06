@@ -1,5 +1,9 @@
 import axios from "axios";
 
+export enum PersistenStorage {
+  ThreadJobMapping = "ThreadJobMapping",
+}
+
 export const postData = async (
   input: string,
   path: string

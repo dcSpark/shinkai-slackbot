@@ -6,6 +6,9 @@ import axios from "axios";
 import crypto from "crypto";
 import { config } from "./config";
 
+import storage from "node-persist";
+import { PersistenStorage } from "./utils";
+
 interface SlackEventApiRequestBodyContent {
   type: "app_mention" | "message";
   client_msg_id: string;
@@ -23,9 +26,6 @@ interface SlackEventApiRequestBodyContent {
   channel_type: string;
   thread_ts?: string;
 }
-
-// if specific thread was already seen, reuse it
-const threadJobMapping: { [threadId: string]: string } = {};
 
 // middleware for verifying slack incoming messages
 const verifySlackRequest = (req, res, next) => {
@@ -76,17 +76,27 @@ export class WebServer {
   public app: express.Application;
   private shinkaiManager: ShinkaiManager;
   private slackBot: SlackBot;
+  threadJobMapping: { [threadId: string]: string };
 
   // the purpose of this is to allow parallelisation, so end user can perform multiple jobs (for example ask questions)
   // and the node will reply to all of those in parallel manner - hence we need to store the ones we didn't get answers to
   // Once we get answer/response from the node in the inbox to specific job, we know to which thread we should post it and then we remove this job from the array
-  constructor(shinkaiManager: ShinkaiManager, slackBot: SlackBot) {
+  constructor(
+    shinkaiManager: ShinkaiManager,
+    slackBot: SlackBot,
+    threadJobMapping: { [threadId: string]: string }
+  ) {
     this.app = express();
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.shinkaiManager = shinkaiManager;
     this.slackBot = slackBot;
+    if (threadJobMapping === undefined) {
+      this.threadJobMapping = {};
+    } else {
+      this.threadJobMapping = threadJobMapping;
+    }
 
     // handling Slack commands (no threads support, though answer is posted correctly inside thread)
     this.app.post("/slack", verifySlackRequest, async (req: any, res: any) => {
@@ -115,10 +125,10 @@ export class WebServer {
           threadId = initialMessage.ts;
 
           // create shinkai job
-          let jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+          let jobId = await this.shinkaiManager.createJob("main/agent/my_gpt");
           console.log("### Job ID:", jobId);
 
-          shinkaiManager.activeJobs.push({
+          this.shinkaiManager.activeJobs.push({
             message: message,
             slackThreadId: threadId,
             slackChannelId: requestBody.channel_id,
@@ -126,7 +136,7 @@ export class WebServer {
           });
 
           // send job message to the node
-          let answer = await shinkaiManager.sendMessage(message, jobId);
+          let answer = await this.shinkaiManager.sendMessage(message, jobId);
           console.log("### Answer:", answer);
 
           const initialSlackMessage = `Job sent to the node jobId: ${jobId}. Response will be posted once node resolves it shortly.`;
@@ -153,8 +163,6 @@ export class WebServer {
 
     // Endpoint for handling Event API (so we can use mentions)
     this.app.post("/slack/events", async (req: any, res: any) => {
-      // if we don't send 200 immediately, then Slack itself sends duplicated messages (there's no way to configure it on Slack settings)
-      res.status(200).send();
       try {
         const json_data = req.body as any;
 
@@ -162,6 +170,9 @@ export class WebServer {
         if ("challenge" in json_data) {
           return res.json({ challenge: json_data["challenge"] });
         }
+
+        // if we don't send 200 immediately, then Slack itself sends duplicated messages (there's no way to configure it on Slack settings)
+        res.status(200).send();
 
         const event = json_data.event as SlackEventApiRequestBodyContent;
         if (
@@ -178,8 +189,6 @@ export class WebServer {
 
             // if we start conversation from scratch we take `event.ts` value
             // however if we are inside already started conversation we need to take `event.thread_ts` field value
-            console.log(`thread_ts: ${event.thread_ts}`);
-            console.log(`ts: ${event.ts}`);
             if (event.thread_ts !== undefined) {
               threadId = event.thread_ts;
             } else {
@@ -193,7 +202,7 @@ export class WebServer {
               );
             }
 
-            const existingJobId = threadJobMapping[threadId];
+            const existingJobId = this.threadJobMapping[threadId];
             let jobId = "";
             if (existingJobId !== undefined) {
               console.log(
@@ -203,14 +212,18 @@ export class WebServer {
             } else {
               // create shinkai job
               console.log(`Creating job id`);
-              jobId = await shinkaiManager.createJob("main/agent/my_gpt");
+              jobId = await this.shinkaiManager.createJob("main/agent/my_gpt");
 
               // assign job id for the fuut
-              threadJobMapping[threadId] = jobId;
+              this.threadJobMapping[threadId] = jobId;
+              await storage.updateItem(
+                PersistenStorage.ThreadJobMapping,
+                this.threadJobMapping
+              );
             }
             console.log("### Job ID:", jobId);
 
-            shinkaiManager.activeJobs.push({
+            this.shinkaiManager.activeJobs.push({
               message: message,
               slackThreadId: threadId,
               slackChannelId: event.channel,
@@ -218,15 +231,8 @@ export class WebServer {
             });
 
             // send job message to the node
-            let answer = await shinkaiManager.sendMessage(message, jobId);
+            let answer = await this.shinkaiManager.sendMessage(message, jobId);
             console.log("### Answer:", answer);
-
-            // if things become too spammy, we can remove the next instruction
-            // slackBot.postMessageToThread(
-            //   event.channel,
-            //   threadId,
-            //   `Job ${jobId} created. Node will soon reply in this thread`
-            // );
           } else {
             throw new Error(
               `${message} was not provided. Nothing to pass to the node.`

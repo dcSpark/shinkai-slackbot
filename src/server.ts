@@ -216,13 +216,13 @@ export class WebServer {
 
               // assign job id for the fuut
               this.threadJobMapping[threadId] = jobId;
-              await storage.updateItem(
+
+              await storage.update(
                 PersistenStorage.ThreadJobMapping,
                 this.threadJobMapping
               );
             }
             console.log("### Job ID:", jobId);
-
             this.shinkaiManager.activeJobs.push({
               message: message,
               slackThreadId: threadId,

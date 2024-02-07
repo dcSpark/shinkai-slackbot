@@ -175,7 +175,7 @@ export class ShinkaiManager {
   }
 
   public getNodeResponses = async (
-    slackBot: SlackBot
+    slackBot?: SlackBot
   ): Promise<string | undefined> => {
     // once request about the job is saved in activeJobs, we want to monitor status of this and clear activeJobs position once job is resolved
     // also if the job is resolved thanks to activeJobs, we can post answer on Slack to specific threads
@@ -190,15 +190,26 @@ export class ShinkaiManager {
       for (const job of this.activeJobs) {
         try {
           let nodeResponse = await this.getMessages(job.shinkaiJobId);
-          console.log(nodeResponse);
-          if (nodeResponse) {
-            const slackMessageResponse = (await slackBot.postMessageToThread(
-              job.slackChannelId,
-              job.slackThreadId,
-              nodeResponse
-            )) as WebAPICallResult;
 
-            if (slackMessageResponse.ok) {
+          // true by default, because if we don't wait for confirmation from another service (like Slack), we don't care about this condition
+          let wasMessagePostedInExternalService = true;
+          if (nodeResponse) {
+            // waiting for external service confirmation that the message was posted to where it supposed to
+            // for further integrations this part can be replaced/adjusted to whatever service we're integrating with
+            if (slackBot !== undefined) {
+              let wasMessagePostedInExternalService = false;
+              const slackMessageResponse = (await slackBot.postMessageToThread(
+                job.slackChannelId,
+                job.slackThreadId,
+                nodeResponse
+              )) as WebAPICallResult;
+
+              if (slackMessageResponse.ok) {
+                wasMessagePostedInExternalService = true;
+              }
+            }
+
+            if (wasMessagePostedInExternalService) {
               // Remove job from activeJobs once processed
               this.activeJobs = this.activeJobs.filter(
                 (j) => j.shinkaiJobId !== job.shinkaiJobId
@@ -214,5 +225,40 @@ export class ShinkaiManager {
       // TODO: make it configurable
       await delay(1000);
     }
+  };
+
+  // return jobId, so we can store it later
+  public createJobAndSend = async (
+    message: string,
+    existingJobId?: string
+  ): Promise<string | undefined> => {
+    try {
+      let jobId: string = "";
+      if (existingJobId !== undefined) {
+        console.log(`Using already existing job id ${existingJobId}`);
+        jobId = existingJobId;
+      } else {
+        // create shinkai job
+        console.log(`Creating job id`);
+        jobId = await this.createJob("main/agent/my_gpt");
+      }
+      console.log("### Job ID:", jobId);
+      this.activeJobs.push({
+        message: message,
+        slackThreadId: "",
+        slackChannelId: "",
+        shinkaiJobId: jobId,
+      });
+
+      // send job message to the node
+      let answer = await this.sendMessage(message, jobId);
+      console.log("### Answer:", answer);
+
+      return jobId;
+    } catch (err) {
+      const error = err as Error;
+      console.error(error.message);
+    }
+    return;
   };
 }

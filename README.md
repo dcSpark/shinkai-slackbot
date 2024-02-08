@@ -44,6 +44,9 @@ npm i
 # nodemon is used here under the hood
 npm run dev
 
-# testing - wip
+# testing
 npm run test
+
+# to run benchmarking - this has to be triggered manually and it's not included in default tests
+npm run test:benchmark
 ```

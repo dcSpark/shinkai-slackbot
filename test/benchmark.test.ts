@@ -226,20 +226,6 @@ const messagesForShinkai = [
   },
 ];
 
-// interface JobMessageAnalytic {
-//   // this can differ but can also be the same for multiple job messages
-//   jobId: string;
-
-//   // to investigate how long it took to process specific message
-//   prompt: string;
-
-//   // for messages that are sent across one job
-//   uniqueId: string;
-//   postedToNodeTimestamp: number;
-//   responseFromTheNodeReceivedTimestamp: number;
-//   executionTime: number;
-// }
-
 // `Slack` trigger is to call `/slack` endpoint
 describe("Integration Tests for WebServer Endpoints", () => {
   let webServer: WebServer;
@@ -276,16 +262,6 @@ describe("Integration Tests for WebServer Endpoints", () => {
       const jobId = await shinkaiManager.createJobAndSend(
         messageInfo.startingMessage
       );
-      const uniqueId = uuidv4();
-      const postedToNodeTimestamp = Date.now();
-      // jobIdsAlreadyCreated.push({
-      //   jobId,
-      //   prompt: messageInfo.startingMessage,
-      //   uniqueId,
-      //   postedToNodeTimestamp,
-      //   responseFromTheNodeReceivedTimestamp: 0, // This will be updated later
-      //   executionTime: 0, // This will be updated later
-      // });
 
       if (jobId) {
         for (const continuedMessage of messageInfo.continuedMessages) {
@@ -295,26 +271,11 @@ describe("Integration Tests for WebServer Endpoints", () => {
           // just send it and move on, no need to await
           shinkaiManager
             .createJobAndSend(continuedMessage, jobId)
-            .then((_result) => {
-              // const uniqueId = uuidv4();
-              // const postedToNodeTimestamp = Date.now();
-              // jobIdsAlreadyCreated.push({
-              //   jobId,
-              //   prompt: continuedMessage,
-              //   uniqueId,
-              //   postedToNodeTimestamp,
-              //   responseFromTheNodeReceivedTimestamp: 0, // This will be updated later
-              //   executionTime: 0, // This will be updated later
-              // });
-            });
+            .then((_result) => {});
           await delay(1000);
         }
       }
     }
-
-    console.log(shinkaiManager.activeJobs.length);
-    console.log(shinkaiManager.archiveJobsAnalytics.length);
-    console.log(shinkaiManager.archiveJobsAnalytics);
 
     while (shinkaiManager.activeJobs.length > 0) {
       console.log(shinkaiManager.archiveJobsAnalytics);

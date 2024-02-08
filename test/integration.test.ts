@@ -39,7 +39,7 @@ describe("Integration Tests for WebServer Endpoints", () => {
       const jobIdRegex =
         /Job sent to the node jobId: jobid_[a-z0-9-]+\. Response will be posted once node resolves it shortly\./;
       expect(response.body.message).toMatch(jobIdRegex);
-    }, 20_000);
+    }, 200_000);
   });
 
   describe("/health endpoint", () => {

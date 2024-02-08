@@ -31,6 +31,7 @@ interface JobAnalytics {
   jobId: string;
   message: string;
   executedTimestamp: number;
+  nodeResponse?: string;
   id?: string;
 }
 
@@ -243,6 +244,7 @@ export class ShinkaiManager {
               const jobAnalytics: JobAnalytics = {
                 jobId: job.shinkaiJobId,
                 message: job.message,
+                nodeResponse: nodeResponse,
                 executedTimestamp:
                   (Date.now() - (job.startTimestamp ?? 0)) / 1000,
                 id: uuidv4(),

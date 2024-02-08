@@ -217,7 +217,7 @@ export class WebServer {
               // assign job id for the fuut
               this.threadJobMapping[threadId] = jobId;
 
-              await storage.update(
+              await storage.updateItem(
                 PersistenStorage.ThreadJobMapping,
                 this.threadJobMapping
               );

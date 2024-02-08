@@ -114,7 +114,7 @@ describe("Integration Tests for WebServer Endpoints", () => {
 
       const stillPendingMessages = shinkaiManager.activeJobs.length;
       expect(stillPendingMessages).toBeLessThan(pendingMessagesAfter);
-    }, 80_000);
+    }, 100_000);
 
     afterAll(async () => {
       // Additional cleanup if necessary

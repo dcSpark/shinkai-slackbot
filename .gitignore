@@ -131,3 +131,4 @@ dist
 
 build
 .node-persist
+test/archiveJobsAnalytics.json

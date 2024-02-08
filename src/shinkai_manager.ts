@@ -9,12 +9,29 @@ import {
 import { delay, postData } from "./utils";
 import { WebAPICallResult } from "@slack/web-api";
 import { SlackBot } from "./slack";
+import { v4 as uuidv4 } from "uuid";
 
 interface SlackJobAssigned {
   message: string;
   shinkaiJobId: string;
-  slackChannelId: string;
-  slackThreadId: string;
+  startTimestamp?: number;
+
+  // this is only related to Slack integration itself, but we need to know where the response should be sent
+  slackChannelId?: string;
+  slackThreadId?: string;
+}
+
+// Added only for benchmarking purposes
+interface ArchiveJobsAnalytics {
+  parentJob: JobAnalytics;
+  followingJobs: JobAnalytics[];
+}
+
+interface JobAnalytics {
+  jobId: string;
+  message: string;
+  executedTimestamp: number;
+  id?: string;
 }
 
 export class ShinkaiManager {
@@ -26,6 +43,7 @@ export class ShinkaiManager {
   private deviceName: string;
 
   public activeJobs: SlackJobAssigned[] = [];
+  public archiveJobsAnalytics?: ArchiveJobsAnalytics[] = [];
 
   constructor(
     encryptionSK: string,
@@ -181,7 +199,7 @@ export class ShinkaiManager {
     // also if the job is resolved thanks to activeJobs, we can post answer on Slack to specific threads
     while (true) {
       if (this.activeJobs.length === 0) {
-        await delay(10_000);
+        await delay(1_000);
         continue;
       }
       console.log(
@@ -214,6 +232,34 @@ export class ShinkaiManager {
               this.activeJobs = this.activeJobs.filter(
                 (j) => j.shinkaiJobId !== job.shinkaiJobId
               );
+
+              // added only for analytics
+              const existingParentIndex = this.archiveJobsAnalytics.findIndex(
+                (analytics) => analytics.parentJob.jobId === job.shinkaiJobId
+              );
+
+              console.log(`existingParentIndex: ${existingParentIndex}`);
+
+              const jobAnalytics: JobAnalytics = {
+                jobId: job.shinkaiJobId,
+                message: job.message,
+                executedTimestamp:
+                  (Date.now() - (job.startTimestamp ?? 0)) / 1000,
+                id: uuidv4(),
+              };
+
+              console.log(jobAnalytics);
+
+              if (existingParentIndex !== -1) {
+                this.archiveJobsAnalytics[
+                  existingParentIndex
+                ].followingJobs.push(jobAnalytics);
+              } else {
+                this.archiveJobsAnalytics.push({
+                  parentJob: jobAnalytics,
+                  followingJobs: [],
+                });
+              }
             }
           }
         } catch (error) {
@@ -243,15 +289,14 @@ export class ShinkaiManager {
         jobId = await this.createJob("main/agent/my_gpt");
       }
       console.log("### Job ID:", jobId);
-      this.activeJobs.push({
-        message: message,
-        slackThreadId: "",
-        slackChannelId: "",
-        shinkaiJobId: jobId,
-      });
 
       // send job message to the node
       let answer = await this.sendMessage(message, jobId);
+      this.activeJobs.push({
+        message: message,
+        shinkaiJobId: jobId,
+        startTimestamp: Date.now(),
+      });
       console.log("### Answer:", answer);
 
       return jobId;

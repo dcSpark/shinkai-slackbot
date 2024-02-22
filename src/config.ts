@@ -13,9 +13,9 @@ export type Configuration = {
 };
 
 export const config: Configuration = {
-  encryptionSk: process.env["ENCRYPTION_SK"] || "",
-  signatureSk: process.env["SIGNATURE_SK"] || "",
-  receiverPk: process.env["RECEIVER_PK"] || "",
+  encryptionSk: process.env["PROFILE_ENCRYPTION_SK"] || "",
+  signatureSk: process.env["PROFILE_IDENTITY_SK"] || "",
+  receiverPk: process.env["NODE_ENCRYPTION_PK"] || "",
 
   slackAppToken: process.env["SLACK_BOT_TOKEN"],
   slackSigningKey: process.env["SLACK_SIGNING_SECRET"],

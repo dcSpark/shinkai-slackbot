@@ -184,6 +184,7 @@ export class ShinkaiManager {
 
   public async createJob(agent: string) {
     const jobMessage = await this.buildCreateJob(agent);
+
     let resp = await postData(JSON.stringify(jobMessage), "/v1/create_job");
 
     if (resp.status === "success") {
@@ -270,7 +271,7 @@ export class ShinkaiManager {
         }
       }
 
-      // TODO: make it configurable
+      // set the delay based on how often we expect responses to resolve on the node
       await delay(1000);
     }
   };
@@ -287,7 +288,7 @@ export class ShinkaiManager {
         jobId = existingJobId;
       } else {
         // create shinkai job
-        console.log(`Creating job id`);
+        console.log(`Creating joxb id`);
         jobId = await this.createJob("main/agent/my_gpt");
       }
       console.log("### Job ID:", jobId);

@@ -9,10 +9,12 @@ export const postData = async (
   path: string
 ): Promise<{ status: string; data: any }> => {
   try {
+    console.log(input);
     const url = `${process.env.SHINKAI_NODE_URL}${path}`;
     const response = await axios.post(url, input, {
       headers: { "Content-Type": "application/json" },
     });
+
     return response.data;
   } catch (error) {
     console.error(error);

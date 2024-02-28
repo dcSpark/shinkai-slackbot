@@ -1,5 +1,7 @@
 # Shinkai Slack Integration
 
+This repository is dedicated to integrating Slack with the Shinkai backend for a Slack bot. It involves setting up environment variables, deploying the service, and configuring Slack app settings to interact with the Shinkai node. The integration allows for sending messages, creating jobs, and receiving responses from the Shinkai node directly within Slack. This setup is particularly useful for teams looking to streamline their workflow by leveraging the capabilities of Shinkai's backend services through Slack's user-friendly interface.
+
 ## Deployments
 
 1. Setup `.env` variables (make sure the node is running)

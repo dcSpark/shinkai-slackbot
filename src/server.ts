@@ -78,7 +78,7 @@ export class WebServer {
   private slackBot: SlackBot;
   threadJobMapping: { [threadId: string]: string };
 
-  // the purpose of this is to allow parallelisation, so end user can perform multiple jobs (for example ask questions)
+  // The purpose of this, is to allow parallelisation, so end user can perform multiple jobs (for example ask questions)
   // and the node will reply to all of those in parallel manner - hence we need to store the ones we didn't get answers to
   // Once we get answer/response from the node in the inbox to specific job, we know to which thread we should post it and then we remove this job from the array
   constructor(
@@ -125,7 +125,7 @@ export class WebServer {
           threadId = initialMessage.ts;
 
           // create shinkai job
-          let jobId = await this.shinkaiManager.createJob("main/agent/my_gpt");
+          let jobId = await this.shinkaiManager.createJob(config.agent);
           console.log("### Job ID:", jobId);
 
           this.shinkaiManager.activeJobs.push({
@@ -212,7 +212,7 @@ export class WebServer {
             } else {
               // create shinkai job
               console.log(`Creating job id`);
-              jobId = await this.shinkaiManager.createJob("main/agent/my_gpt");
+              jobId = await this.shinkaiManager.createJob(config.agent);
 
               // assign job id for the fuut
               this.threadJobMapping[threadId] = jobId;

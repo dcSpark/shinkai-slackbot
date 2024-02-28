@@ -10,13 +10,14 @@ import { delay, postData } from "./utils";
 import { WebAPICallResult } from "@slack/web-api";
 import { SlackBot } from "./slack";
 import { v4 as uuidv4 } from "uuid";
+import { config } from "./config";
 
 interface SlackJobAssigned {
   message: string;
   shinkaiJobId: string;
   startTimestamp?: number;
 
-  // this is only related to Slack integration itself, but we need to know where the response should be sent
+  // This is only related to Slack integration itself, but we need to know where the response should be sent
   slackChannelId?: string;
   slackThreadId?: string;
 }
@@ -266,7 +267,6 @@ export class ShinkaiManager {
             }
           }
         } catch (error) {
-          // console.error(error);
           console.log(`Response for jobId: ${job.shinkaiJobId} not available`);
         }
       }
@@ -277,6 +277,7 @@ export class ShinkaiManager {
   };
 
   // return jobId, so we can store it later
+  // single function to create job and send it to the node
   public createJobAndSend = async (
     message: string,
     existingJobId?: string
@@ -289,7 +290,7 @@ export class ShinkaiManager {
       } else {
         // create shinkai job
         console.log(`Creating joxb id`);
-        jobId = await this.createJob("main/agent/my_gpt");
+        jobId = await this.createJob(config.agent);
       }
       console.log("### Job ID:", jobId);
 

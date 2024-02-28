@@ -16,7 +16,7 @@ async function main() {
     config.deviceName
   );
 
-  // load persistent storage (use persistent store to remember thread<>shinkai job mappings)
+  // load persistent storage (use persistent store to remember thread<>shinkai job mappings to keep the context of the conversation within slack threads)
   await storage.init();
   let threadJobMapping: { [threadId: string]: string };
   try {
@@ -32,19 +32,8 @@ async function main() {
 
   shinkaiManager
     .getNodeResponses(slackBot)
-    .then((response) => console.log("Message response fetcher was started."))
-    .catch((err) => console.error("Node response fetcher was stopped."));
-
-  // uncomment and create a loop to check node behaviour (to be removed)
-  // let job_id = await shinkaiManager.createJob("main/agent/my_gpt");
-  // console.log("### Job ID:", job_id);
-
-  // let answer = await shinkaiManager.sendMessage("What are you?", job_id);
-  // console.log("### Answer:", answer);
-
-  // // await delay(20000);
-  // let nodeResponse = await shinkaiManager.getMessages(job_id);
-  // console.log(nodeResponse);
+    .then(() => console.log("Message response fetcher was started."))
+    .catch(() => console.error("Node response fetcher was stopped."));
 }
 
 main();

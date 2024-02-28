@@ -29,13 +29,6 @@ npm run start
 
 ## Slack app configuration details
 
-This part of README.md is WIP, because implementation will change. However, it's important to note, that once this service is deployed, the url for the `trigger` endpoint needs to be configured in Slack settings.
-
-Once this service is deployed Slack Application setup must be upgraded with the url to the endpoint that should be triggered when Slack app command inside cli is executed. Places to `paste` the endpoint details are:
-
-* `Slash Commands -> Request URL`
-* `Interactivity & Shortcuts -> Interactivity (must be on) -> Request URL`
-
 In order to be able to have full Slack integration, we need to get details about Slack Application token and setup necessary configurations. Bot requires 2 pieces of information:
 
 1. **Slack bot token (xoxb-)**: To retrieve your Slack bot token, first navigate to the Slack API website and log in to your account. Then, create a new app or select an existing one from your apps list. Under the 'Features' section in the sidebar, click on 'OAuth & Permissions'. Scroll down to the 'Bot Token Scopes' section and add the necessary scopes for your bot. After configuring the scopes, scroll up to the 'OAuth Tokens for Your Workspace' section and click the 'Install to Workspace' button. Follow the prompts to install the app to your workspace, and you will be provided with a bot token starting with `xoxb-``. This token is what you'll use to authenticate your bot with the Slack API.

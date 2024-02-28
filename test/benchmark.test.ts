@@ -1,5 +1,5 @@
 import request from "supertest";
-import { describe, expect, test } from "@jest/globals";
+import { describe } from "@jest/globals";
 import { WebServer } from "../src/server";
 import { ShinkaiManager } from "../src/shinkai_manager";
 
@@ -7,7 +7,6 @@ import { config } from "../src/config";
 import { SlackBot } from "../src/slack";
 import { delay } from "../src/utils";
 
-import { v4 as uuidv4 } from "uuid";
 import storage from "node-persist";
 
 const messagesForShinkai = [
@@ -227,8 +226,6 @@ describe("Integration Tests for WebServer Endpoints", () => {
   });
 
   it.only("should process event and create a job when receiving an event request", async () => {
-    // let jobIdsAlreadyCreated: JobMessageAnalytic[] = [];
-
     // start monitoring for responses
     shinkaiManager.getNodeResponses();
 
@@ -278,12 +275,9 @@ describe("Integration Tests for WebServer Endpoints", () => {
         console.log("Archive jobs analytics saved successfully.");
       }
     });
-    // console.log(jobIdsAlreadyCreated.length);
 
-    // time limit can be infinite, depending on paylaoad - it's easy to timeout this test
+    // time limit can be infinite, depending on paylaoad - it's easy to timeout here
   }, 50_000_000);
 
-  afterAll(() => {
-    // TODO: close the node if initial setup is possible
-  });
+  afterAll(() => {});
 });

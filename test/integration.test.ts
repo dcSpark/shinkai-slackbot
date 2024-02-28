@@ -1,5 +1,5 @@
 import request from "supertest";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect } from "@jest/globals";
 import { WebServer } from "../src/server";
 import { ShinkaiManager } from "../src/shinkai_manager";
 
@@ -116,12 +116,8 @@ describe("Integration Tests for WebServer Endpoints", () => {
       expect(stillPendingMessages).toBeLessThan(pendingMessagesAfter);
     }, 100_000);
 
-    afterAll(async () => {
-      // Additional cleanup if necessary
-    });
+    afterAll(async () => {});
   });
 
-  afterAll(() => {
-    // TODO: close the node if initial setup is possible
-  });
+  afterAll(() => {});
 });

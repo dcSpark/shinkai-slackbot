@@ -1,6 +1,5 @@
 import {
   InboxName,
-  JobScope,
   MessageSchemaType,
   ShinkaiMessage,
   ShinkaiMessageBuilder,
